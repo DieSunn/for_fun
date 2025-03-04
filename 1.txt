@@ -1,0 +1,66 @@
+' Создаем объекты
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+Set objShell = CreateObject("WScript.Shell")
+
+strFile = "file_list.txt"
+
+' Проверяем существование файла
+If Not objFSO.FileExists(strFile) Then
+    WScript.Echo "Файл " & strFile & " не найден"
+    WScript.Quit
+End If
+
+' Открываем файл для чтения
+Set objFile = objFSO.OpenTextFile(strFile, 1) ' 1 = ForReading
+strContent = objFile.ReadAll
+objFile.Close
+
+' Разбиваем содержимое на массив строк
+arrLines = Split(strContent, vbCrLf)
+
+' Проверяем, есть ли строки в файле
+If UBound(arrLines) > 0 Then
+    ' Получаем первую непустую строку
+    strFirstLine = ""
+    For i = 0 To UBound(arrLines)
+        If Trim(arrLines(i)) <> "" Then
+            strFirstLine = arrLines(i)
+            Exit For
+        End If
+    Next
+    
+    ' Если найдена первая строка
+    If strFirstLine <> "" Then
+        ' Копируем в буфер обмена
+        objShell.Run "cmd.exe /c echo " & strFirstLine & "| clip", 0, True
+        
+        ' Формируем новый контент без первой строки
+        strNewContent = ""
+        bFirstSkipped = False
+        For i = 0 To UBound(arrLines)
+            If Trim(arrLines(i)) <> "" Then
+                If Not bFirstSkipped Then
+                    bFirstSkipped = True
+                Else
+                    strNewContent = strNewContent & arrLines(i) & vbCrLf
+                End If
+            End If
+        Next
+        
+        ' Перезаписываем файл
+        Set objFile = objFSO.OpenTextFile(strFile, 2) ' 2 = ForWriting
+        objFile.Write strNewContent
+        objFile.Close
+        
+        WScript.Echo "Первая строка (" & strFirstLine & ") скопирована в буфер и удалена из файла"
+    Else
+        WScript.Echo "Не найдено непустых строк в файле"
+    End If
+Else
+    WScript.Echo "Файл пуст или содержит только пустые строки"
+End If
+
+' Очистка объектов
+Set objFile = Nothing
+Set objFSO = Nothing
+Set objShell = Nothing
